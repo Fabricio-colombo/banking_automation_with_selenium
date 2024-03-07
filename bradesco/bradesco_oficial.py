@@ -20,6 +20,10 @@ import random
 from pynput.keyboard import Controller
 import pandas as pd
 from selenium.webdriver import ActionChains
+from config import login_proxy
+from config import senha_proxy
+from config import login_usuario
+from config import senha_usuario
 
 def proxies(username, password, endpoint, port):
     manifest_json = """
@@ -83,11 +87,11 @@ def proxies(username, password, endpoint, port):
     return extension
 
 proxy_list = [ 
-              {"host":"181.41.197.51",'port':'59100','username':'kreichcambraialucas','password':'YgsRLTYAws','failed':0},
-              {"host":"141.11.141.243",'port':'59100','username':'kreichcambraialucas','password':'YgsRLTYAws','failed':0},
-              {"host":"185.74.55.82",'port':'59100','username':'kreichcambraialucas','password':'YgsRLTYAws','failed':0},
-              {"host":"2.56.249.158",'port':'59100','username':'kreichcambraialucas','password':'YgsRLTYAws','failed':0},
-              {"host":"191.96.73.137",'port':'59100','username':'kreichcambraialucas','password':'YgsRLTYAws','failed':0},
+              {"host":"181.41.197.51",'port':'59100','username':login_proxy,'password':senha_proxy,'failed':0},
+              {"host":"141.11.141.243",'port':'59100','username':login_proxy,'password':senha_proxy,'failed':0},
+              {"host":"185.74.55.82",'port':'59100','username':login_proxy,'password':senha_proxy,'failed':0},
+              {"host":"2.56.249.158",'port':'59100','username':login_proxy,'password':senha_proxy,'failed':0},
+              {"host":"191.96.73.137",'port':'59100','username':login_proxy,'password':senha_proxy,'failed':0},
               ]
 def create_new_chrome_browser(use_proxy=True):
     options = webdriver.ChromeOptions()
@@ -685,8 +689,8 @@ def consulta_bradesco(cpf, driver):
         "operacoes": operacoes,
     }
 
-usuario = "1012-LISJV@BEVICRED"
-senha = "Lispro2024@"
+usuario = login_usuario
+senha = senha_usuario
 cpf = '59335742520'
 driver = login_bradesco(usuario,senha, cpf)
 consulta_bradesco(cpf, driver)

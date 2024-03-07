@@ -434,3 +434,259 @@ def login_bradesco(usuario, senha, cpf):
             break    
     driver = {'driver': driver}
     return driver
+
+def consulta_bradesco(cpf, driver):
+    print('Começando a segunda função principal')
+    
+    def wait_loading():
+        try:
+            WebDriverWait(driver, 5).until(
+                EC.visibility_of_element_located((By.ID, 'UpdateProgress1'))
+            )
+            print('Loading começou.')
+
+            WebDriverWait(driver, 5).until(
+                EC.invisibility_of_element_located((By.ID, 'UpdateProgress1'))
+            )
+            time.sleep(0.5)
+            print('Esperou o loading com sucesso.')
+
+        except TimeoutException:
+            print('Não esperou o loading.')
+                   
+    try:
+        driver = driver['driver']
+        ### comportamento dinamico sempre que pesquisa CPF
+        codigo_invalido = 57
+        cpf_nao_localizado = 67
+        sem_contrato_convenio = 28
+        cpf_invalido = 23
+        
+        while True:
+            api_key = "08577d94e9e2272e61226ad7f039e3b0"
+            solver = TwoCaptcha(api_key)
+            
+            script_directory = os.path.dirname(__file__)
+            folder_address = os.path.join(script_directory, "captchas")
+            
+            id_captcha = 'cphBodyMain_cphBody_cphBody_ucCaptcha_captcha'
+            time.sleep(0.5)
+            
+            file_address = os.path.join(folder_address, f'{id_captcha}.png')
+            
+            if os.path.exists(file_address):
+                os.remove(file_address)
+            
+            captcha = driver.find_element(By.ID, id_captcha)
+            captcha.screenshot(file_address)
+            print('Screenshot do Captcha')
+
+            id = solver.send(file=file_address)
+            print("Arquivo enviado:", file_address)
+            time.sleep(5)
+
+            captcha_answer = None
+            attempts = 0
+            while attempts < 5:
+                try:
+                    captcha_answer = solver.get_result(id)
+                    print("Captcha resolvido:", captcha_answer)
+                    if captcha_answer != "0000":
+                        break
+                except Exception as e:
+                    print(f"Erro ao resolver captcha: {e}")
+                    time.sleep(5)
+                attempts += 1
+                
+            driver.find_element(By.ID, 'cphBodyMain_cphBody_cphBody_ucCaptcha_txtCaptcha').clear()
+            print('Limpou o campo para digitar o captcha...')
+            time.sleep(0.5)
+            elemento_captcha = driver.find_element(By.ID, 'cphBodyMain_cphBody_cphBody_ucCaptcha_txtCaptcha')
+            ActionChains(driver).move_to_element(elemento_captcha).click().send_keys(captcha_answer).perform()
+            print(f'Digitou o Captcha: {captcha_answer}')
+            time.sleep(0.5)
+            WebDriverWait(driver, 3).until(
+                EC.visibility_of_element_located((By.ID, 'cphBodyMain_cphBody_cphBody_ucConsultaMargem_ucConsultaMargemRefin_txtCpf'))
+            )
+            limpar_cpf = driver.find_element(By.ID, 'cphBodyMain_cphBody_cphBody_ucConsultaMargem_ucConsultaMargemRefin_txtCpf')
+            limpar_cpf.clear()
+            time.sleep(0.5)
+            preencher_cpf = driver.find_element(By.ID, 'cphBodyMain_cphBody_cphBody_ucConsultaMargem_ucConsultaMargemRefin_txtCpf')
+            ActionChains(driver).move_to_element(preencher_cpf).click().send_keys(cpf).perform()
+            print('Preencheu o CPF para teste do Captcha')
+            WebDriverWait(driver, 1).until(
+                EC.visibility_of_element_located((By.ID, 'cphBodyMain_cphBody_cphBody_ucConsultaMargem_ucConsultaMargemRefin_btnPesquisarCpf'))
+            )
+            clicar_lupa = driver.find_element(By.ID, 'cphBodyMain_cphBody_cphBody_ucConsultaMargem_ucConsultaMargemRefin_btnPesquisarCpf')
+            actions = ActionChains(driver)
+            actions.double_click(clicar_lupa).perform()
+            print('Pesquisou CPF')
+            wait_loading()
+            
+            try:
+                WebDriverWait(driver, 5).until(
+                    EC.visibility_of_element_located((By.CSS_SELECTOR, f'body > div:nth-child({codigo_invalido})'))
+                )
+                dv_dialog = driver.find_element(By.CSS_SELECTOR, f'body > div:nth-child({codigo_invalido})')
+                mensagem_de_erro = dv_dialog.find_element(By.TAG_NAME, 'p').text
+                print("Mensagem de erro capturada:", mensagem_de_erro)
+                
+                WebDriverWait(driver, 5).until(
+                    EC.visibility_of_element_located((By.CSS_SELECTOR, f'body > div:nth-child({codigo_invalido}) > div.ui-dialog-titlebar.ui-corner-all.ui-widget-header.ui-helper-clearfix > button > span.ui-button-icon.ui-icon.ui-icon-closethick'))
+                )
+                fechar_alerta = driver.find_element(By.CSS_SELECTOR, f'body > div:nth-child({codigo_invalido}) > div.ui-dialog-titlebar.ui-corner-all.ui-widget-header.ui-helper-clearfix > button > span.ui-button-icon.ui-icon.ui-icon-closethick')
+                fechar_alerta.click()
+                if mensagem_de_erro == 'Código de segurança inválido.':
+                    limpar_cpf = driver.find_element(By.ID, 'cphBodyMain_cphBody_cphBody_ucConsultaMargem_ucConsultaMargemRefin_txtCpf')
+                    limpar_cpf.clear()
+                    codigo_invalido += 11
+                    cpf_nao_localizado += 11
+                    sem_contrato_convenio += 6
+                    cpf_invalido += 1
+                    print(f'codigo_invalido: {codigo_invalido}, cpf_nao_localizado: {cpf_nao_localizado}, sem_contrato_convenio: {sem_contrato_convenio}, cpf_invalido: {cpf_invalido}')
+                    print('REFAZENDO O CAPTCHAR...')
+                    continue
+            except:
+                print("Verificou se o código de segurança é válido e PASSOU!")
+
+
+            try:
+                WebDriverWait(driver, 5).until(
+                    EC.visibility_of_element_located((By.CSS_SELECTOR, f'body > div:nth-child({cpf_nao_localizado})'))
+                )
+                dv_dialog2 = driver.find_element(By.CSS_SELECTOR, f"body > div:nth-child({cpf_nao_localizado})")
+                mensagem_de_erro2 = dv_dialog2.find_element(By.TAG_NAME, 'p').text
+                print("Mensagem de erro capturada:", mensagem_de_erro2)
+                WebDriverWait(driver, 5).until(
+                    EC.visibility_of_element_located((By.CSS_SELECTOR, f'body > div:nth-child({cpf_nao_localizado}) > div.ui-dialog-titlebar.ui-corner-all.ui-widget-header.ui-helper-clearfix > button > span.ui-button-icon.ui-icon.ui-icon-closethick'))
+                )
+                fechar_alerta_cpf = driver.find_element(By.CSS_SELECTOR, f'body > div:nth-child({cpf_nao_localizado}) > div.ui-dialog-titlebar.ui-corner-all.ui-widget-header.ui-helper-clearfix > button > span.ui-button-icon.ui-icon.ui-icon-closethick')
+                fechar_alerta_cpf.click()
+                if mensagem_de_erro2 == 'Não foram localizados dados para o CPF informado.':
+                    print('FIM DO CODIGO!')
+                    return {
+                    "sucesso": False,
+                    "msg_retorno": "Nenhuma Operação Encontrada",
+                    "cpf": cpf
+                }
+            except:
+                print("Verificou se a mensagem era CPF não localizado e PASSOU!.")
+                
+            
+            try:
+                WebDriverWait(driver, 5).until(
+                    EC.visibility_of_element_located((By.CSS_SELECTOR, f'body > div:nth-child({sem_contrato_convenio})'))
+                )
+                dv_dialog3 = driver.find_element(By.CSS_SELECTOR, f"body > div:nth-child({sem_contrato_convenio})")
+                mensagem_de_erro3 = dv_dialog3.find_element(By.TAG_NAME, 'p').text
+                print("Mensagem de erro capturada:", mensagem_de_erro3)
+                WebDriverWait(driver, 5).until(
+                    EC.visibility_of_element_located((By.CSS_SELECTOR, f'body > div:nth-child({sem_contrato_convenio}) > div.ui-dialog-titlebar.ui-corner-all.ui-widget-header.ui-helper-clearfix > button > span.ui-button-icon.ui-icon.ui-icon-closethick'))
+                )
+                fechar_alerta_cpf = driver.find_element(By.CSS_SELECTOR, f'body > div:nth-child({sem_contrato_convenio}) > div.ui-dialog-titlebar.ui-corner-all.ui-widget-header.ui-helper-clearfix > button > span.ui-button-icon.ui-icon.ui-icon-closethick')
+                fechar_alerta_cpf.click()
+                if mensagem_de_erro3 == 'Não existem contratos deste cliente no convênio selecionado.':
+                    print('FIM DO CODIGO!')
+                    return {
+                    "sucesso": False,
+                    "msg_retorno": "Nenhuma Operação Encontrada",
+                    "cpf": cpf
+                }
+            except:
+                print("Verificou se a mensagem de não existem contratos de convênio existe e PASSOU!.")
+                
+              
+            try:
+                WebDriverWait(driver, 5).until(
+                    EC.visibility_of_element_located((By.CSS_SELECTOR, f'body > div:nth-child({cpf_invalido})'))
+                )
+                dv_dialog4 = driver.find_element(By.CSS_SELECTOR, f"body > div:nth-child({cpf_invalido})")
+                mensagem_de_erro4 = dv_dialog4.find_element(By.TAG_NAME, 'p').text
+                print("Mensagem de erro capturada:", mensagem_de_erro4)
+                WebDriverWait(driver, 5).until(
+                    EC.visibility_of_element_located((By.CSS_SELECTOR, f'body > div:nth-child({cpf_invalido}) > div.ui-dialog-titlebar.ui-corner-all.ui-widget-header.ui-helper-clearfix > button > span.ui-button-icon.ui-icon.ui-icon-closethick'))
+                )
+                fechar_alerta_cpf = driver.find_element(By.CSS_SELECTOR, f'body > div:nth-child({cpf_invalido}) > div.ui-dialog-titlebar.ui-corner-all.ui-widget-header.ui-helper-clearfix > button > span.ui-button-icon.ui-icon.ui-icon-closethick')
+                fechar_alerta_cpf.click()
+                if mensagem_de_erro4 == 'CPF Inválido':
+                    print('FIM DO CODIGO!')
+                    return {
+                    "sucesso": False,
+                    "msg_retorno": "CPF Inválido",
+                    "cpf": cpf
+                }
+            except:
+                print("Verificou a mensagem CPF Inválido e PASSOU!.")
+            
+            try:
+                WebDriverWait(driver, 5).until(
+                    EC.visibility_of_element_located((By.ID, 'cphBodyMain_cphBody_cphBody_ucDadosRefinanciamento_upNmCliente'))
+                )
+                verificar_cliente = driver.find_element(By.XPATH, '//*[@id="cphBodyMain_cphBody_cphBody_ucDadosRefinanciamento_upNmCliente"]/div/label').text
+                print(f'{verificar_cliente}, verificou que cliente esta presente e PASSOU!!')
+            except NoSuchElementException:
+                print('Não encontrou o cliente e FINALIZOU!.')
+                return {
+                    "sucesso": False,
+                    "msg_retorno": "Nenhuma Operação Encontrada",
+                    "cpf": cpf
+                }
+            
+            break
+            
+    except Exception as e:
+        print('Não conseguiu passar do captcha')
+        print(f"Ocorreu um erro: {e}")
+    
+    
+    try:
+        dropdown = Select(driver.find_element(By.ID, 'cphBodyMain_cphBody_cphBody_ucConsultaMargem_ucConsultaMargemRefin_drpBeneficio'))
+        numero_de_beneficios = len(dropdown.options)
+        print(f'{verificar_cliente}, tem {numero_de_beneficios} benefícios disponíveis')
+    except:
+        print('Não pegou os beneficios do cliente')
+        
+
+    operacoes = []
+    try:
+        WebDriverWait(driver, 5).until(
+            EC.visibility_of_element_located((By.ID, 'cphBodyMain_cphBody_cphBody_ucDadosRefinanciamento_gvContratos'))
+        )
+        tabela = driver.find_element(By.ID, 'cphBodyMain_cphBody_cphBody_ucDadosRefinanciamento_gvContratos')
+        linhas = tabela.find_elements(By.TAG_NAME, 'tr')[1:]
+        for linha in linhas:
+            celulas = linha.find_elements(By.TAG_NAME, 'td')
+            contrato_refinanciar = celulas[1].text
+            data = celulas[2].text
+            valor_solicitado = celulas[3].text
+            valor_parcela = celulas[4].text
+            em_aberto = celulas[5].text
+            status = celulas[6].text 
+
+            operacoes.append({
+                "contrato": contrato_refinanciar,
+                "data": data,
+                "saldo devedor": valor_solicitado,
+                "valor parcela": valor_parcela,
+                "em aberto": em_aberto,
+                "status": status
+            })
+        print(operacoes)
+    except Exception as e:
+        print('Erro encontrado:', e)
+    
+    msg_retorno = f"{len(operacoes)} Operação Encontrada" if len(operacoes) == 1 else f"{len(operacoes)} Operações Encontradas"
+
+    return {
+        "sucesso": True,
+        "valor_liberado": 0,
+        "msg_retorno": msg_retorno,
+        "cpf": cpf,
+        "operacoes": operacoes,
+    }
+
+usuario = "1012-LISJV@BEVICRED"
+senha = "Lispro2024@"
+cpf = '59335742520'
+driver = login_bradesco(usuario,senha, cpf)
+consulta_bradesco(cpf, driver)
